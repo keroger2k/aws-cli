@@ -70,7 +70,7 @@ class AwsCli:
             ("Search IP", self.search_ip),
             ("Search IP in SG", self.search_ip_in_sg),
             ("Display All VPC Info", self.display_all_vpc_info),
-            #("Display TGWs", self.display_all_tgw_info),
+            ("Display TGWs", self.display_all_tgw_info),
             ("Display TGWs Routing Table", self.search_ip_list_tgw),
             ("Go back", Menu.CLOSE)
         ]
@@ -181,7 +181,7 @@ class AwsCli:
         Logger.header(STR_HEADER)
         cont.get_vpcs(None)
         for value in roles.AWS_ROLES:
-            cont.get_vpcs(roles.AWS_ROLES[value]['role'])
+            cont.get_vpcs(value)
         Logger.header(STR_FOOTER)
     
     def display_all_tgw_info(self):
@@ -189,7 +189,7 @@ class AwsCli:
         Logger.header(STR_HEADER)
         cont.get_tgws(None)
         for value in roles.AWS_ROLES:
-            cont.get_tgws(roles.AWS_ROLES[value]['role'])
+            cont.get_tgws(value)
         Logger.header(STR_FOOTER)
 
     def search_ip(self):
@@ -225,7 +225,7 @@ class AwsCli:
 
         for value in roles.AWS_ROLES:
             print(f"Checking {value} acount....")
-            sec_groups = cont.get_all_security_groups(roles.AWS_ROLES[value]['role'])
+            sec_groups = cont.get_all_security_groups(value)
             for security_group in sec_groups['SecurityGroups']:
                 for rule in security_group['IpPermissions']:
                     for ip_range in rule['IpRanges']:

@@ -1,29 +1,69 @@
+import json
+import os
+import time
+import roles
+
 class QueryService:
+
+    CACHE_TTL = 3600
 
     def __init__(self, awsclient):
          self.awsclient = awsclient
     
     def get_vpcs(self, role):
-        vpcs = []
 
         if role is None:
-            vpcs = self.awsclient.user_client.describe_vpcs()['Vpcs']
+            cache_file = "AWS\\Cache\\vpcs\\default.json"
         else:
-            client = self.awsclient.get_role_client(role)
-            vpcs = client.describe_vpcs()['Vpcs']
-        
-        return vpcs
+            cache_file = "AWS\\Cache\\vpcs\\" + role + ".json"
+
+        if os.path.exists(cache_file):
+            cache_mtime = os.path.getmtime(cache_file)
+            
+            if time.time() - cache_mtime < self.CACHE_TTL:
+                with open(cache_file, 'r') as f:
+                    return json.load(f)
+        else:
+            vpcs = []
+
+            if role is None:
+                vpcs = self.awsclient.user_client.describe_vpcs()['Vpcs']
+            else:
+                client = self.awsclient.get_role_client(roles.AWS_ROLES[role]['role'])
+                vpcs = client.describe_vpcs()['Vpcs']
+            
+            # Cache the results
+            with open(cache_file, 'w') as f:
+                json.dump(vpcs, f, indent=4, sort_keys=True, default=str)
+            
+            return vpcs
 
     def get_tgws(self, role):
-        tgws = []
-
         if role is None:
-            tgws = self.awsclient.user_client.describe_transit_gateways()['TransitGateways']
+            cache_file = "AWS\\Cache\\tgws\\default.json"
         else:
-            client = self.awsclient.get_role_client(role)
-            tgws = client.describe_transit_gateways()['TransitGateways']
-         
-        return tgws
+            cache_file = "AWS\\Cache\\tgws\\" + role + ".json"
+
+        if os.path.exists(cache_file):
+            cache_mtime = os.path.getmtime(cache_file)
+            
+            if time.time() - cache_mtime < self.CACHE_TTL:
+                with open(cache_file, 'r') as f:
+                    return json.load(f)
+        else:
+            tgws = []
+
+            if role is None:
+                tgws = self.awsclient.user_client.describe_transit_gateways()['TransitGateways']
+            else:
+                client = self.awsclient.get_role_client(roles.AWS_ROLES[role]['role'])
+                tgws = client.describe_transit_gateways()['TransitGateways']
+            
+             # Cache the results
+            with open(cache_file, 'w') as f:
+                json.dump(tgws, f, indent=4, sort_keys=True, default=str)
+            
+            return tgws
     
     def get_route_tables(self, role, filters):
         rtbs = []
@@ -31,7 +71,7 @@ class QueryService:
         if role == None:
             rtbs = self.awsclient.user_client.describe_route_tables(Filters=filters)["RouteTables"]
         else: 
-            client = self.awsclient.get_role_client(role)
+            client = self.awsclient.get_role_client(roles.AWS_ROLES[role]['role'])
             rtbs = client.describe_route_tables(Filters=filters)["RouteTables"]
 
         return rtbs
@@ -42,7 +82,7 @@ class QueryService:
         if role is None:
             interfaces = self.awsclient.user_client.describe_network_interfaces(Filters=filters)["NetworkInterfaces"]
         else:
-            client = self.awsclient.get_role_client(role)
+            client = self.awsclient.get_role_client(roles.AWS_ROLES[role]['role'])
             interfaces = client.describe_network_interfaces(Filters=filters)["NetworkInterfaces"]
         
         return interfaces
@@ -53,7 +93,7 @@ class QueryService:
         if role == None:
             nacls = self.awsclient.user_client.describe_network_acls(Filters=filters)['NetworkAcls']
         else:
-            client = self.awsclient.get_role_client(role)
+            client = self.awsclient.get_role_client(roles.AWS_ROLES[role]['role'])
             nacls = client.describe_network_acls(Filters=filters)['NetworkAcls']
         
         return nacls
@@ -63,7 +103,7 @@ class QueryService:
         if role == None:
             rtbs = self.awsclient.user_client.describe_route_tables(Filters=filters)["RouteTables"]
         else: 
-            client = self.awsclient.get_role_client(role)
+            client = self.awsclient.get_role_client(roles.AWS_ROLES[role]['role'])
             rtbs = client.describe_route_tables(Filters=filters)["RouteTables"]
 
         if rtbs:
@@ -79,7 +119,7 @@ class QueryService:
             tgwrtb = tgw['Options']['AssociationDefaultRouteTableId']
             return self.awsclient.user_client.search_transit_gateway_routes(TransitGatewayRouteTableId=tgwrtb, Filters=filters)["Routes"]
         else:
-            client = self.awsclient.get_role_client(role)
+            client = self.awsclient.get_role_client(roles.AWS_ROLES[role]['role'])
             tgw = client.describe_transit_gateways(TransitGatewayIds=[tgwId])["TransitGateways"][0]
             tgwrtb = tgw['Options']['AssociationDefaultRouteTableId']
             return client.search_transit_gateway_routes(TransitGatewayRouteTableId=tgwrtb, Filters=filters)["Routes"]
@@ -92,7 +132,7 @@ class QueryService:
         if role == None:
             sgs = self.awsclient.user_client.describe_security_groups(GroupIds=[groupId])["SecurityGroups"]
         else:
-            client = self.awsclient.get_role_client(role)
+            client = self.awsclient.get_role_client(roles.AWS_ROLES[role]['role'])
             sgs = client.describe_security_groups(GroupIds=[groupId])["SecurityGroups"]
 
         return sgs    
@@ -103,7 +143,7 @@ class QueryService:
         if role == None:
             sgs = self.awsclient.user_client.describe_security_groups()["SecurityGroups"]
         else:
-            client = self.awsclient.get_role_client(role)
+            client = self.awsclient.get_role_client(roles.AWS_ROLES[role]['role'])
             sgs = client.describe_security_groups()["SecurityGroups"]
 
         return sgs    
