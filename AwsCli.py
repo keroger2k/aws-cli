@@ -180,16 +180,16 @@ class AwsCli:
         cont = self.ec2_controller()
         Logger.header(STR_HEADER)
         cont.get_vpcs(None)
-        for role in roles.AWS_ROLES:
-            cont.get_vpcs(role)
+        for value in roles.AWS_ROLES:
+            cont.get_vpcs(roles.AWS_ROLES[value]['role'])
         Logger.header(STR_FOOTER)
     
     def display_all_tgw_info(self):
         cont = self.ec2_controller()
         Logger.header(STR_HEADER)
         cont.get_tgws(None)
-        for role in roles.AWS_ROLES:
-            cont.get_tgws(role)
+        for value in roles.AWS_ROLES:
+            cont.get_tgws(roles.AWS_ROLES[value]['role'])
         Logger.header(STR_FOOTER)
 
     def search_ip(self):
@@ -223,9 +223,9 @@ class AwsCli:
                     if (ip_range['CidrIp'] == ip_address):
                         print(f"Found rule for {ip_address}: in security group: {security_group['GroupName']} ({security_group['GroupId']})")
 
-        for arn in roles.AWS_ROLES:
-            print(f"Checking {arn} acount....")
-            sec_groups = cont.get_all_security_groups(arn)
+        for value in roles.AWS_ROLES:
+            print(f"Checking {value} acount....")
+            sec_groups = cont.get_all_security_groups(roles.AWS_ROLES[value]['role'])
             for security_group in sec_groups['SecurityGroups']:
                 for rule in security_group['IpPermissions']:
                     for ip_range in rule['IpRanges']:
