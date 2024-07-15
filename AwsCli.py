@@ -9,6 +9,7 @@ import Resources
 import EC2
 import TransitGateways
 from AWS.Client.AccessClient import AWSClient
+from AWS.Service.QueryService import QueryService
 
 # String constants
 STR_HEADER = "--------------------------------------------------------------------"
@@ -87,7 +88,8 @@ class AwsCli:
         if self.ec2_cont is None:
             resource = Resources.Resource(AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
             awsclient = AWSClient(resource)
-            self.ec2_cont = EC2.EC2Controller(awsclient)
+            queryservice = QueryService(awsclient)
+            self.ec2_cont = EC2.EC2Controller(awsclient, queryservice)
         return self.ec2_cont
 
     def ec2_list(self):

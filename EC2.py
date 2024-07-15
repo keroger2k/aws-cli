@@ -9,9 +9,10 @@ class EC2Controller:
     #  A class for controlling interactions with the boto3 EC2  Resource and Client Interface
     INSTANCES_DISPLAY_FORMAT = '  {0}({1})  \t {2} - {3} <RegionInfo:{4}>  \t <Launched On:{5}>'
 
-    def __init__(self, awsclient):
+    def __init__(self, awsclient, queryservice):
         # EC2Controller Constructor, assigns the ec2 Resource "ec2_role_client" and "ec2client" Client to this controller
         self.awsclient = awsclient
+        self.queryservice = queryservice
         self.current_interface = None
         self.role = None
 
@@ -63,14 +64,9 @@ class EC2Controller:
         return count
     
     def get_tgws(self, role):
+        self.role = role
+        tgws = self.queryservice.get_tgws(role)
         table = []
-
-        if role is None:
-            tgws = self.awsclient.user_client.describe_transit_gateways()['TransitGateways']
-        else:
-            client = self.awsclient.get_role_client(role)
-            tgws = client.describe_transit_gateways()['TransitGateways']
-            print(f"Searching role {role}...")
    
         for tgw in tgws:
             table.append([tgw['TransitGatewayId'], tgw['TransitGatewayArn'], tgw['State'], tgw['Description'] ])
@@ -78,30 +74,24 @@ class EC2Controller:
         print(tabulate(table, headers=['TransitGatewayId', 'TransitGatewayArn', 'State', 'Description'], tablefmt = 'fancy_grid')) 
 
     def get_vpcs(self, role):
-        vpcs = []
+        self.role = role
+        vpcs = self.queryservice.get_vpcs(role)
         table = []
 
-        if role is None:
-            vpcs = self.awsclient.user_client.describe_vpcs()['Vpcs']
-            #vpcs = self.ec2_client.describe_vpcs()['Vpcs']
-            print(vpcs)
-        else:
-            client = self.awsclient.get_role_client(role)
-            vpcs = client.describe_vpcs()['Vpcs']
-
-            for vpc in vpcs:
-                if 'Tags' in vpc:
-                    for tag in vpc['Tags']:
-                        if 'Key' in tag and tag['Key'] == 'Name':
-                            table.append((vpc['CidrBlock'], vpc['VpcId'], tag['Value']))
-                else:
-                    table.append((vpc['CidrBlock'], vpc['VpcId'], "No Name"))
+        for vpc in vpcs:
+            if 'Tags' in vpc:
+                for tag in vpc['Tags']:
+                    if 'Key' in tag and tag['Key'] == 'Name':
+                        table.append((vpc['CidrBlock'], vpc['VpcId'], tag['Value']))
+            else:
+                table.append((vpc['CidrBlock'], vpc['VpcId'], "No Name"))
 
             
             print(f"Searching role {role}...")
             print(tabulate(table, headers=['CidrBlock', 'VpcId', 'Name'], tablefmt = 'fancy_grid'))
     
     def get_route_table_by_vpc(self, vpcid, role):
+        self.role = role
         print(f"Get route table for subnet: {self.current_interface['SubnetId']}")
         filters = [
             {
@@ -111,11 +101,7 @@ class EC2Controller:
         ]
 
         table = []
-        if self.role == None:
-            rtbs = self.awsclient.user_client.describe_route_tables(Filters=filters)["RouteTables"]
-        else: 
-            client = self.awsclient.get_role_client(role)
-            rtbs = client.describe_route_tables(Filters=filters)["RouteTables"]
+        rtbs = self.queryservice.get_route_tables(role, filters)
 
         if rtbs:
             for rtb in rtbs:
@@ -126,7 +112,6 @@ class EC2Controller:
 
     def get_interface(self, interfaceId, role):
         self.role = role
-
         filters = [
             {
                 'Name': 'addresses.private-ip-address',
@@ -134,16 +119,12 @@ class EC2Controller:
             }
         ]
         
-        if role is None:
-            self.current_interface = self.awsclient.user_client.describe_network_interfaces(Filters=filters)["NetworkInterfaces"][0]
-        else:
-            client = self.awsclient.get_role_client(role)
-            print(f"Searching role {role}...")
-            self.current_interface = client.describe_network_interfaces(Filters=filters)["NetworkInterfaces"][0]
+        interface = self.queryservice.get_interfaces(role, filters)
+        self.current_interface = interface[0]
 
-        if self.current_interface:
+        if self.get_interface:
             table = []
-            table.append([self.current_interface['NetworkInterfaceId'], self.current_interface['PrivateIpAddress'], self.current_interface['Ipv6Address'] if 'Ipv6Address' in self.current_interface else "Not Found", self.current_interface['Status'], self.current_interface['SubnetId'], self.current_interface['VpcId']])
+            table.append([interface[0]['NetworkInterfaceId'], interface[0]['PrivateIpAddress'], interface[0]['Ipv6Address'] if 'Ipv6Address' in interface[0] else "Not Found", interface[0]['Status'], interface[0]['SubnetId'], interface[0]['VpcId']])
         
         print(tabulate(table, headers=['NetworkInterfaceId', 'IPv4 Address', 'IPv6 Address', 'Status', 'SubnetId', 'VpcId'], tablefmt = 'fancy_grid'))
     
@@ -152,17 +133,14 @@ class EC2Controller:
     
     def get_network_acl_by_subnet(self):
 
-        filter = [
+        filters = [
             {
                 'Name': 'association.subnet-id',
                 'Values': [self.current_interface['SubnetId']]
             }
         ]
-        if self.role == None:
-            nacls = self.awsclient.user_client.describe_network_acls(Filters=filter)['NetworkAcls']
-        else:
-            client = self.awsclient.get_role_client(self.role)
-            nacls = client.describe_network_acls(Filters=filter)['NetworkAcls']
+
+        nacls = self.queryservice.get_network_acl(self.role, filters)    
         
         table = []
         for acl in nacls:
@@ -185,28 +163,21 @@ class EC2Controller:
         ]
 
         table = []
-        if self.role == None:
-            rtbs = self.awsclient.user_client.describe_route_tables(Filters=filters)["RouteTables"]
-        else: 
-            client = self.awsclient.get_role_client(self.role)
-            rtbs = client.describe_route_tables(Filters=filters)["RouteTables"]
+        
+        rtbs = self.queryservice.get_network_acl(self.role, filters)    
 
-        if rtbs:
-            for rtb in rtbs:
-                for route in rtb['Routes']:
-                    table.append(
-                        [route['DestinationCidrBlock'] if 'DestinationCidrBlock' in route else "" , 
-                         route['DestinationIpv6CidrBlock'] if 'DestinationIpv6CidrBlock' in route else "", 
-                         route['DestinationPrefixListId'] if 'DestinationPrefixListId' in route else "", 
-                         route['GatewayId'] if 'GatewayId' in route else "", 
-                         route['TransitGatewayId'] if 'TransitGatewayId' in route else "", 
-                         route['Origin'], 
-                         route['State']])
-                
-                print(tabulate(table, headers=['DestinationCidrBlock', 'DestinationIpv6CidrBlock', 'DestinationPrefixListId', 'TransitGatewayId', 'GatewayId', 'Origin', 'State'], tablefmt = 'fancy_grid'))
-        else:
-            print(f"No route table attached to subnet {self.current_interface['SubnetId']}; Displaying default route table for { self.current_interface['VpcId'] }...")
-            rtb = self.get_route_table_by_vpc(self.current_interface['VpcId'], self.role)
+        for rtb in rtbs:
+            for route in rtb['Routes']:
+                table.append(
+                    [route['DestinationCidrBlock'] if 'DestinationCidrBlock' in route else "" , 
+                        route['DestinationIpv6CidrBlock'] if 'DestinationIpv6CidrBlock' in route else "", 
+                        route['DestinationPrefixListId'] if 'DestinationPrefixListId' in route else "", 
+                        route['GatewayId'] if 'GatewayId' in route else "", 
+                        route['TransitGatewayId'] if 'TransitGatewayId' in route else "", 
+                        route['Origin'], 
+                        route['State']])
+            
+            print(tabulate(table, headers=['DestinationCidrBlock', 'DestinationIpv6CidrBlock', 'DestinationPrefixListId', 'TransitGatewayId', 'GatewayId', 'Origin', 'State'], tablefmt = 'fancy_grid'))
         
     def print_security_group_rules(self, direction, name, rules):
         table = []
@@ -242,17 +213,13 @@ class EC2Controller:
         ]
 
         role = TransitGateways.TGWS[tgwId]["role"]
+        self.role = role
 
-        if role == None:
-            tgw = self.awsclient.user_client.describe_transit_gateways(TransitGatewayIds=[tgwId])["TransitGateways"][0]
-            tgwrtb = tgw['Options']['AssociationDefaultRouteTableId']
-            tgwrt = self.awsclient.user_client.search_transit_gateway_routes(TransitGatewayRouteTableId=tgwrtb, Filters=filters)["Routes"]
-        else:
-            client = self.awsclient.get_role_client(role)
-            tgw = self.ec2_role_client.describe_transit_gateways(TransitGatewayIds=[tgwId])["TransitGateways"][0]
-            tgwrtb = tgw['Options']['AssociationDefaultRouteTableId']
-            tgwrt = client.search_transit_gateway_routes(TransitGatewayRouteTableId=tgwrtb, Filters=filters)["Routes"]
-        
+        tgw = self.queryservice.get_tgw_rtb(tgwId, role, filters)    
+
+        tgwrtb = tgw['Options']['AssociationDefaultRouteTableId']
+        tgwrt = self.awsclient.user_client.search_transit_gateway_routes(TransitGatewayRouteTableId=tgwrtb, Filters=filters)["Routes"]
+
         table = []
         x = 1
         for route in tgwrt:
@@ -269,21 +236,14 @@ class EC2Controller:
         print(tabulate(table, headers=['#', 'DestinationCidrBlock', 'ResourceId', 'TransitGatewayAttachmentId', 'ResourceType', 'Type', 'State'], tablefmt = 'fancy_grid'))
         
     def get_interface_security_groups_by_id(self, groupId):
-        if self.role == None:
-            security_groups = self.ec2_client.describe_security_groups(GroupIds=[groupId])["SecurityGroups"]
-        else:
-            client = self.awsclient.get_role_client(self.role)
-            security_groups = client.describe_security_groups(GroupIds=[groupId])["SecurityGroups"]
+        security_groups = self.queryservice.get_security_groups_by_id(groupId, self.role)    
             
         for sg in security_groups:
-                self.print_security_group_rules('Ingress', sg['GroupName'], sg['IpPermissions'])
-                self.print_security_group_rules('Egress ', sg['GroupName'], sg['IpPermissionsEgress'])
+            self.print_security_group_rules('Ingress', sg['GroupName'], sg['IpPermissions'])
+            self.print_security_group_rules('Egress ', sg['GroupName'], sg['IpPermissionsEgress'])
 
     def get_all_security_groups(self, role):
-        if role == None:
-            return self.awsclient.user_client.describe_security_groups()
-        else:
-            client = self.awsclient.get_role_client(role)
-            return client.describe_security_groups()
+        self.role = role
+        return self.queryservice.get_security_groups(self.role)
             
     
