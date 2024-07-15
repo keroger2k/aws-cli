@@ -4,6 +4,7 @@ from Logger import Logger
 from config import AWS_REGION
 import TransitGateways
 import Vpc
+#from access_client import AWSClient
 
 class EC2Controller:
     #  A class for controlling interactions with the boto3 EC2  Resource and Client Interface
@@ -64,6 +65,7 @@ class EC2Controller:
         return count
     
     def get_role_client(self, role):
+
         sts_client = boto3.client('sts')
 
         assumed_role_object=sts_client.assume_role(

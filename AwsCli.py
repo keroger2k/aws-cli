@@ -226,15 +226,6 @@ class AwsCli:
                     for ip_range in rule['IpRanges']:
                         if (ip_range['CidrIp'] == ip_address):
                             print(f"Found rule for {ip_address}: in security group: {security_group['GroupName']} ({security_group['GroupId']})")
-            
-    def login(self):
-        self.aws_res = Resources.Resource(AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
-        self.ec2_role_client = self.aws_res.ec2_role_client("arn:aws-us-gov:iam::236024529161:role/NGDC-SharedServices-ReadOnlyRole")
-        # set ec2 resource
-        self.ec2_client = self.aws_res.ec2_client()
-        # set ec2 client
-        Logger.info("Logged In Successfully.")
-        self.main_menu.open()
 
     @staticmethod
     def clear_console():
@@ -243,7 +234,11 @@ class AwsCli:
     def run(self):
         # Main method
         self.clear_console()
-        self.login()
+        self.aws_res = Resources.Resource(AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+        self.ec2_role_client = self.aws_res.ec2_role_client("arn:aws-us-gov:iam::236024529161:role/NGDC-SharedServices-ReadOnlyRole")
+        # set ec2 resource
+        self.ec2_client = self.aws_res.ec2_client()
+        self.main_menu.open()
 
 
 if __name__ == "__main__":
