@@ -1,4 +1,3 @@
-import boto3
 from tabulate import tabulate
 from Logger import Logger
 from config import AWS_REGION
@@ -9,9 +8,8 @@ class EC2Controller:
     #  A class for controlling interactions with the boto3 EC2  Resource and Client Interface
     INSTANCES_DISPLAY_FORMAT = '  {0}({1})  \t {2} - {3} <RegionInfo:{4}>  \t <Launched On:{5}>'
 
-    def __init__(self, awsclient, queryservice):
+    def __init__(self, queryservice):
         # EC2Controller Constructor, assigns the ec2 Resource "ec2_role_client" and "ec2client" Client to this controller
-        self.awsclient = awsclient
         self.queryservice = queryservice
         self.current_interface = None
         self.role = None
@@ -164,7 +162,7 @@ class EC2Controller:
 
         table = []
         
-        rtbs = self.queryservice.get_network_acl(self.role, filters)    
+        rtbs = self.queryservice.get_network_rtb(self.role, filters)    
 
         for rtb in rtbs:
             for route in rtb['Routes']:
@@ -215,10 +213,7 @@ class EC2Controller:
         role = TransitGateways.TGWS[tgwId]["role"]
         self.role = role
 
-        tgw = self.queryservice.get_tgw_rtb(tgwId, role, filters)    
-
-        tgwrtb = tgw['Options']['AssociationDefaultRouteTableId']
-        tgwrt = self.awsclient.user_client.search_transit_gateway_routes(TransitGatewayRouteTableId=tgwrtb, Filters=filters)["Routes"]
+        tgwrt = self.queryservice.get_tgw_rtb(tgwId, role, filters)    
 
         table = []
         x = 1
@@ -245,5 +240,3 @@ class EC2Controller:
     def get_all_security_groups(self, role):
         self.role = role
         return self.queryservice.get_security_groups(self.role)
-            
-    

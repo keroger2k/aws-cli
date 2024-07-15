@@ -89,7 +89,7 @@ class AwsCli:
             resource = Resources.Resource(AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
             awsclient = AWSClient(resource)
             queryservice = QueryService(awsclient)
-            self.ec2_cont = EC2.EC2Controller(awsclient, queryservice)
+            self.ec2_cont = EC2.EC2Controller(queryservice)
         return self.ec2_cont
 
     def ec2_list(self):

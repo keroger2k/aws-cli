@@ -78,12 +78,14 @@ class QueryService:
         if role == None:
             tgw = self.awsclient.user_client.describe_transit_gateways(TransitGatewayIds=[tgwId])["TransitGateways"][0]
             tgwrtb = tgw['Options']['AssociationDefaultRouteTableId']
-            tgwrt = self.awsclient.user_client.search_transit_gateway_routes(TransitGatewayRouteTableId=tgwrtb, Filters=filters)["Routes"]
+            return self.awsclient.user_client.search_transit_gateway_routes(TransitGatewayRouteTableId=tgwrtb, Filters=filters)["Routes"]
         else:
             client = self.awsclient.get_role_client(role)
             tgw = client.describe_transit_gateways(TransitGatewayIds=[tgwId])["TransitGateways"][0]
             tgwrtb = tgw['Options']['AssociationDefaultRouteTableId']
-            tgwrt = client.search_transit_gateway_routes(TransitGatewayRouteTableId=tgwrtb, Filters=filters)["Routes"]
+            return client.search_transit_gateway_routes(TransitGatewayRouteTableId=tgwrtb, Filters=filters)["Routes"]
+    
+   
     
     def get_security_groups_by_id(self, groupId, role):
         sgs = []
