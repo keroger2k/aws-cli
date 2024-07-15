@@ -8,6 +8,7 @@ import roles
 import Resources
 import EC2
 import TransitGateways
+from AWS.Client.AccessClient import AWSClient
 
 # String constants
 STR_HEADER = "--------------------------------------------------------------------"
@@ -84,7 +85,9 @@ class AwsCli:
     def ec2_controller(self):
         # get EC2 Controller
         if self.ec2_cont is None:
-            self.ec2_cont = EC2.EC2Controller(self.ec2_role_client, self.ec2_client)
+            resource = Resources.Resource(AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+            awsclient = AWSClient(resource)
+            self.ec2_cont = EC2.EC2Controller(awsclient)
         return self.ec2_cont
 
     def ec2_list(self):
@@ -234,10 +237,9 @@ class AwsCli:
     def run(self):
         # Main method
         self.clear_console()
-        self.aws_res = Resources.Resource(AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
-        self.ec2_role_client = self.aws_res.ec2_role_client("arn:aws-us-gov:iam::236024529161:role/NGDC-SharedServices-ReadOnlyRole")
-        # set ec2 resource
-        self.ec2_client = self.aws_res.ec2_client()
+        #self.resource = Resources.Resource(AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+        #aws_clients = AWSClient(self.resource)
+        #self.ec2_client = aws_clients.get_user_client()
         self.main_menu.open()
 
 

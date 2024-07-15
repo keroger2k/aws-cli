@@ -4,16 +4,14 @@ from Logger import Logger
 from config import AWS_REGION
 import TransitGateways
 import Vpc
-#from access_client import AWSClient
 
 class EC2Controller:
     #  A class for controlling interactions with the boto3 EC2  Resource and Client Interface
     INSTANCES_DISPLAY_FORMAT = '  {0}({1})  \t {2} - {3} <RegionInfo:{4}>  \t <Launched On:{5}>'
 
-    def __init__(self, ec2_role_client, ec2client):
+    def __init__(self, awsclient):
         # EC2Controller Constructor, assigns the ec2 Resource "ec2_role_client" and "ec2client" Client to this controller
-        self.ec2_role_client = ec2_role_client
-        self.ec2_client = ec2client
+        self.awsclient = awsclient
         self.current_interface = None
         self.role = None
 
@@ -64,33 +62,14 @@ class EC2Controller:
                 Logger.info(self.INSTANCES_DISPLAY_FORMAT.format(*terminated_instance))
         return count
     
-    def get_role_client(self, role):
-
-        sts_client = boto3.client('sts')
-
-        assumed_role_object=sts_client.assume_role(
-            RoleArn=role,
-            RoleSessionName="AssumeRoleSession1"
-        )
-
-        credentials=assumed_role_object['Credentials']
-
-        session=boto3.Session(
-            aws_access_key_id=credentials['AccessKeyId'],
-            aws_secret_access_key=credentials['SecretAccessKey'],
-            aws_session_token=credentials['SessionToken'],
-        )
-
-        return session.client("ec2", region_name="us-gov-west-1")
-
     def get_tgws(self, role):
         table = []
 
         if role is None:
-            tgws = self.ec2_client.describe_transit_gateways()['TransitGateways']
+            tgws = self.awsclient.user_client.describe_transit_gateways()['TransitGateways']
         else:
-            self.ec2_role_client = self.get_role_client(role)
-            tgws = self.ec2_role_client.describe_transit_gateways()['TransitGateways']
+            client = self.awsclient.get_role_client(role)
+            tgws = client.describe_transit_gateways()['TransitGateways']
             print(f"Searching role {role}...")
    
         for tgw in tgws:
@@ -103,10 +82,12 @@ class EC2Controller:
         table = []
 
         if role is None:
-            vpcs = self.ec2_client.describe_vpcs()['Vpcs']
+            vpcs = self.awsclient.user_client.describe_vpcs()['Vpcs']
+            #vpcs = self.ec2_client.describe_vpcs()['Vpcs']
+            print(vpcs)
         else:
-            self.ec2_role_client = self.get_role_client(role)
-            vpcs = self.ec2_role_client.describe_vpcs()['Vpcs']
+            client = self.awsclient.get_role_client(role)
+            vpcs = client.describe_vpcs()['Vpcs']
 
             for vpc in vpcs:
                 if 'Tags' in vpc:
@@ -131,9 +112,10 @@ class EC2Controller:
 
         table = []
         if self.role == None:
-            rtbs = self.ec2_client.describe_route_tables(Filters=filters)["RouteTables"]
+            rtbs = self.awsclient.user_client.describe_route_tables(Filters=filters)["RouteTables"]
         else: 
-            rtbs = self.ec2_role_client.describe_route_tables(Filters=filters)["RouteTables"]
+            client = self.awsclient.get_role_client(role)
+            rtbs = client.describe_route_tables(Filters=filters)["RouteTables"]
 
         if rtbs:
             for rtb in rtbs:
@@ -153,11 +135,11 @@ class EC2Controller:
         ]
         
         if role is None:
-            self.current_interface = self.ec2_client.describe_network_interfaces(Filters=filters)["NetworkInterfaces"][0]
+            self.current_interface = self.awsclient.user_client.describe_network_interfaces(Filters=filters)["NetworkInterfaces"][0]
         else:
-            self.ec2_role_client = self.get_role_client(role)
+            client = self.awsclient.get_role_client(role)
             print(f"Searching role {role}...")
-            self.current_interface = self.ec2_role_client.describe_network_interfaces(Filters=filters)["NetworkInterfaces"][0]
+            self.current_interface = client.describe_network_interfaces(Filters=filters)["NetworkInterfaces"][0]
 
         if self.current_interface:
             table = []
@@ -177,9 +159,10 @@ class EC2Controller:
             }
         ]
         if self.role == None:
-            nacls = self.ec2_client.describe_network_acls(Filters=filter)['NetworkAcls']
+            nacls = self.awsclient.user_client.describe_network_acls(Filters=filter)['NetworkAcls']
         else:
-            nacls = self.ec2_role_client.describe_network_acls(Filters=filter)['NetworkAcls']
+            client = self.awsclient.get_role_client(self.role)
+            nacls = client.describe_network_acls(Filters=filter)['NetworkAcls']
         
         table = []
         for acl in nacls:
@@ -203,9 +186,10 @@ class EC2Controller:
 
         table = []
         if self.role == None:
-            rtbs = self.ec2_client.describe_route_tables(Filters=filters)["RouteTables"]
+            rtbs = self.awsclient.user_client.describe_route_tables(Filters=filters)["RouteTables"]
         else: 
-            rtbs = self.ec2_role_client.describe_route_tables(Filters=filters)["RouteTables"]
+            client = self.awsclient.get_role_client(self.role)
+            rtbs = client.describe_route_tables(Filters=filters)["RouteTables"]
 
         if rtbs:
             for rtb in rtbs:
@@ -260,14 +244,14 @@ class EC2Controller:
         role = TransitGateways.TGWS[tgwId]["role"]
 
         if role == None:
-            tgw = self.ec2_client.describe_transit_gateways(TransitGatewayIds=[tgwId])["TransitGateways"][0]
+            tgw = self.awsclient.user_client.describe_transit_gateways(TransitGatewayIds=[tgwId])["TransitGateways"][0]
             tgwrtb = tgw['Options']['AssociationDefaultRouteTableId']
-            tgwrt = self.ec2_client.search_transit_gateway_routes(TransitGatewayRouteTableId=tgwrtb, Filters=filters)["Routes"]
+            tgwrt = self.awsclient.user_client.search_transit_gateway_routes(TransitGatewayRouteTableId=tgwrtb, Filters=filters)["Routes"]
         else:
-            self.ec2_role_client = self.get_role_client(role)
+            client = self.awsclient.get_role_client(role)
             tgw = self.ec2_role_client.describe_transit_gateways(TransitGatewayIds=[tgwId])["TransitGateways"][0]
             tgwrtb = tgw['Options']['AssociationDefaultRouteTableId']
-            tgwrt = self.ec2_role_client.search_transit_gateway_routes(TransitGatewayRouteTableId=tgwrtb, Filters=filters)["Routes"]
+            tgwrt = client.search_transit_gateway_routes(TransitGatewayRouteTableId=tgwrtb, Filters=filters)["Routes"]
         
         table = []
         x = 1
@@ -288,7 +272,8 @@ class EC2Controller:
         if self.role == None:
             security_groups = self.ec2_client.describe_security_groups(GroupIds=[groupId])["SecurityGroups"]
         else:
-            security_groups = self.ec2_role_client.describe_security_groups(GroupIds=[groupId])["SecurityGroups"]
+            client = self.awsclient.get_role_client(self.role)
+            security_groups = client.describe_security_groups(GroupIds=[groupId])["SecurityGroups"]
             
         for sg in security_groups:
                 self.print_security_group_rules('Ingress', sg['GroupName'], sg['IpPermissions'])
@@ -296,8 +281,9 @@ class EC2Controller:
 
     def get_all_security_groups(self, role):
         if role == None:
-            return self.ec2_client.describe_security_groups()
+            return self.awsclient.user_client.describe_security_groups()
         else:
-            return self.ec2_role_client.describe_security_groups()
+            client = self.awsclient.get_role_client(role)
+            return client.describe_security_groups()
             
     
