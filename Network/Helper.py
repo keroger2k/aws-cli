@@ -1,12 +1,11 @@
 from ipaddress import ip_address, ip_network, AddressValueError
-import Vpc
 import roles
 from AWS.Service.QueryService import QueryService
 
 
 class NetworkHelper:
 
-    DISASTER_VPC = "vpc-0226a04f6f962a45b"
+    DISASTER_VPC = "vpc-0226a04f6f962a45b" #generates false results
 
     def __init__(self, queryservice):
         # init
@@ -37,3 +36,11 @@ class NetworkHelper:
                 tgws_list[tgw['TransitGatewayId']] = { 'description': tgw['Description'] }
         
         return tgws_list
+    
+    def list_all_interfaces(self):
+        interfaces = []
+        for key, value in roles.AWS_ROLES.items():
+            interfaces = self.queryservice.get_all_interfaces(key)
+        
+        return interfaces
+

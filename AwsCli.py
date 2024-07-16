@@ -239,6 +239,7 @@ class AwsCli:
     def run(self):
         # Main method
         self.ec2_controller()
+        self.nethelper.list_all_interfaces()
         self.clear_console()
         self.main_menu.open()
 

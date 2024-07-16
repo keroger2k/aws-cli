@@ -107,16 +107,9 @@ class EC2Controller:
         
                 print(tabulate(table, headers=['DestinationCidrBlock', 'DestinationIpv6CidrBlock', 'DestinationPrefixListId', 'TransitGatewayId', 'GatewayId', 'Origin', 'State'], tablefmt = 'fancy_grid'))
 
-    def get_interface(self, interfaceId, role):
+    def get_interface(self, ip, role):
         self.role = role
-        filters = [
-            {
-                'Name': 'addresses.private-ip-address',
-                'Values': [interfaceId]
-            }
-        ]
-        
-        interface = self.queryservice.get_interfaces(role, filters)
+        interface = self.queryservice.get_interface(role, ip)
         self.current_interface = interface[0]
 
         if self.get_interface:

@@ -70,6 +70,31 @@ class QueryService:
             
             return tgws
     
+    def get_all_interfaces(self, role):
+        if role is None:
+            cache_file = "AWS\\Cache\\interfaces\\default.json"
+        else:
+            cache_file = "AWS\\Cache\\interfaces\\" + role + ".json"
+
+        if self.checkcachefile(cache_file):
+            with open(cache_file, 'r') as f:
+                return json.load(f)
+            
+        else:
+            interfaces = []
+
+            if role is None:
+                interfaces = self.awsclient.user_client.describe_network_interfaces()["NetworkInterfaces"]
+            else:
+                client = self.awsclient.get_role_client(roles.AWS_ROLES[role]['role'])
+                interfaces = client.describe_network_interfaces()['NetworkInterfaces']
+                
+             # Cache the results
+            with open(cache_file, 'w') as f:
+                json.dump(interfaces, f, indent=4, sort_keys=True, default=str)
+            
+            return interfaces
+    
     def get_route_tables(self, role, filters):
         rtbs = []
 
@@ -81,8 +106,30 @@ class QueryService:
 
         return rtbs
     
-    def get_interfaces(self, role, filters):
+    def get_interface(self, role, ip):
         interfaces = []
+
+        if role is None:
+            cache_file = "AWS\\Cache\\interfaces\\default.json"
+        else:
+            cache_file = "AWS\\Cache\\interfaces\\" + role + ".json"
+
+        if self.checkcachefile(cache_file):
+            with open(cache_file, 'r') as f:
+                role_interfaces =  json.load(f)
+                interface = [iface for iface in role_interfaces if iface['PrivateIpAddress'] == ip]
+                if interface:
+                    return interface
+
+
+
+        
+        filters = [
+            {
+                'Name': 'addresses.private-ip-address',
+                'Values': [ip]
+            }
+        ]
 
         if role is None:
             interfaces = self.awsclient.user_client.describe_network_interfaces(Filters=filters)["NetworkInterfaces"]
