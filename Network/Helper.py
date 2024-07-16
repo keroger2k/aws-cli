@@ -16,15 +16,6 @@ class NetworkHelper:
             return True
         except (ValueError, AddressValueError):
             return False
-   
-    # def find_associated_arn(ip):
-    #     ip = ip_address(ip)
-    #     for vpc in Vpc.vpc.items():
-    #         for entry in vpc[1]["CidrBlock"]:
-    #             network = ip_network(entry)
-    #             if ip in network:
-    #                 return vpc[1]["role"]
-    #     return None
 
     def find_associated_arn(self, ip):
         ip = ip_address(ip)
@@ -34,3 +25,12 @@ class NetworkHelper:
                 network = ip_network(vpc['CidrBlock'])
                 if ip in network:
                     return key
+    
+    def list_transit_gateways(self):
+        tgws_list = {}
+        for key, value in roles.AWS_ROLES.items():
+            tgws = self.queryservice.get_tgws(key)
+            for tgw in tgws:
+                tgws_list[tgw['TransitGatewayId']] = { 'description': tgw['Description'] }
+        
+        return tgws_list

@@ -154,8 +154,12 @@ class AwsCli:
             auto_clear=False
         )
 
-        for key in TransitGateways.TGWS: 
-            tgw_menu_options.append((f"{key}: {TransitGateways.TGWS[key]['description']}", lambda id = key: cont.get_tgw_rtb(id))) 
+        self.nethelper = Helper.NetworkHelper(self.queryservice)
+
+        tgws = self.nethelper.list_transit_gateways()
+
+        for key in tgws: 
+            tgw_menu_options.append((f"{key}: {tgws[key]['description']}", lambda id = key: cont.get_tgw_rtb(id))) 
     
         tgw_menu_options.append(("Go back", Menu.CLOSE))
         tgw_menu.set_options(tgw_menu_options)

@@ -210,7 +210,7 @@ class EC2Controller:
             }
         ]
 
-        role = TransitGateways.TGWS[tgwId]["role"]
+        role = None
         self.role = role
 
         tgwrt = self.queryservice.get_tgw_rtb(tgwId, role, filters)    
