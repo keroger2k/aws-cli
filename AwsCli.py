@@ -26,13 +26,10 @@ class AwsCli:
 
     def __init__(self):
         # init
-        self.logged_in = False
-        self.username = None
-        self.passwdDict = dict()
-        self.ec2_role_client = None
-        self.ec2_client = None
+        self.queryservice = None
+        self.nethelper = None
         self.ec2_cont = None
-        
+
         # -------------EC2-------------
         # Options of EC2 Menu
         self.ec2_menu_options = [
@@ -88,8 +85,8 @@ class AwsCli:
         if self.ec2_cont is None:
             resource = Resources.Resource(AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
             awsclient = AWSClient(resource)
-            queryservice = QueryService(awsclient)
-            self.ec2_cont = EC2.EC2Controller(queryservice)
+            self.queryservice = QueryService(awsclient)
+            self.ec2_cont = EC2.EC2Controller(self.queryservice)
         return self.ec2_cont
 
     def ec2_list(self):
@@ -158,7 +155,7 @@ class AwsCli:
         )
 
         for key in TransitGateways.TGWS: 
-            tgw_menu_options.append((f"{key}: {TransitGateways.TGWS[key]["description"]}", lambda id = key: cont.get_tgw_rtb(id))) 
+            tgw_menu_options.append((f"{key}: {TransitGateways.TGWS[key]['description']}", lambda id = key: cont.get_tgw_rtb(id))) 
     
         tgw_menu_options.append(("Go back", Menu.CLOSE))
         tgw_menu.set_options(tgw_menu_options)
@@ -195,12 +192,13 @@ class AwsCli:
     def search_ip(self):
         #assign local
         cont = self.ec2_controller()
+        self.nethelper = Helper.NetworkHelper(self.queryservice)
                     
         while True:
             Logger.header(STR_HEADER)
             ip_address = input("Input the IP address to search: ")
-            if Helper.NetworkHelper.is_valid_ip(ip_address):
-                arn = Helper.NetworkHelper.find_associated_arn(ip_address)
+            if self.nethelper.is_valid_ip(ip_address):
+                arn = self.nethelper.find_associated_arn(ip_address)
                 if arn is None:
                     cont.get_interface(ip_address, None)
                 else:
@@ -246,9 +244,9 @@ class AwsCli:
 
 
 if __name__ == "__main__":
-    try:
+    #try:
         AwsCli().run()
-    except KeyboardInterrupt as error:
-        Logger.err(str(error))
-    except Exception as e:
-        Logger.err(str(e))
+    #except KeyboardInterrupt as error:
+    #    Logger.err(str(error))
+    #except Exception as e:
+    #    Logger.err(str(e))

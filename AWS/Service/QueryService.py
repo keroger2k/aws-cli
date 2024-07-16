@@ -5,10 +5,19 @@ import roles
 
 class QueryService:
 
-    CACHE_TTL = 3600
-
+    CACHE_TTL = 86400 #day
+ 
     def __init__(self, awsclient):
          self.awsclient = awsclient
+
+    def checkcachefile(self, cache_file):
+        if os.path.exists(cache_file):
+            cache_mtime = os.path.getmtime(cache_file)
+            
+            if time.time() - cache_mtime < self.CACHE_TTL:
+                return True
+        
+        return False
     
     def get_vpcs(self, role):
 
@@ -17,12 +26,10 @@ class QueryService:
         else:
             cache_file = "AWS\\Cache\\vpcs\\" + role + ".json"
 
-        if os.path.exists(cache_file):
-            cache_mtime = os.path.getmtime(cache_file)
+        if self.checkcachefile(cache_file):
+            with open(cache_file, 'r') as f:
+                return json.load(f)
             
-            if time.time() - cache_mtime < self.CACHE_TTL:
-                with open(cache_file, 'r') as f:
-                    return json.load(f)
         else:
             vpcs = []
 
@@ -44,12 +51,10 @@ class QueryService:
         else:
             cache_file = "AWS\\Cache\\tgws\\" + role + ".json"
 
-        if os.path.exists(cache_file):
-            cache_mtime = os.path.getmtime(cache_file)
+        if self.checkcachefile(cache_file):
+            with open(cache_file, 'r') as f:
+                return json.load(f)
             
-            if time.time() - cache_mtime < self.CACHE_TTL:
-                with open(cache_file, 'r') as f:
-                    return json.load(f)
         else:
             tgws = []
 
@@ -72,7 +77,7 @@ class QueryService:
             rtbs = self.awsclient.user_client.describe_route_tables(Filters=filters)["RouteTables"]
         else: 
             client = self.awsclient.get_role_client(roles.AWS_ROLES[role]['role'])
-            rtbs = client.describe_route_tables(Filters=filters)["RouteTables"]
+            rtbs = client.describe_route_tables(Filters=filters)['RouteTables']
 
         return rtbs
     
@@ -83,7 +88,7 @@ class QueryService:
             interfaces = self.awsclient.user_client.describe_network_interfaces(Filters=filters)["NetworkInterfaces"]
         else:
             client = self.awsclient.get_role_client(roles.AWS_ROLES[role]['role'])
-            interfaces = client.describe_network_interfaces(Filters=filters)["NetworkInterfaces"]
+            interfaces = client.describe_network_interfaces(Filters=filters)['NetworkInterfaces']
         
         return interfaces
     
