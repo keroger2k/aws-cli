@@ -7,7 +7,6 @@ import os
 import roles
 import Resources
 import EC2
-import TransitGateways
 from AWS.Client.AccessClient import AWSClient
 from AWS.Service.QueryService import QueryService
 
@@ -86,6 +85,7 @@ class AwsCli:
             resource = Resources.Resource(AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
             awsclient = AWSClient(resource)
             self.queryservice = QueryService(awsclient)
+            self.nethelper = Helper.NetworkHelper(self.queryservice)
             self.ec2_cont = EC2.EC2Controller(self.queryservice)
         return self.ec2_cont
 
@@ -154,8 +154,6 @@ class AwsCli:
             auto_clear=False
         )
 
-        self.nethelper = Helper.NetworkHelper(self.queryservice)
-
         tgws = self.nethelper.list_transit_gateways()
 
         for key in tgws: 
@@ -196,7 +194,7 @@ class AwsCli:
     def search_ip(self):
         #assign local
         cont = self.ec2_controller()
-        self.nethelper = Helper.NetworkHelper(self.queryservice)
+        
                     
         while True:
             Logger.header(STR_HEADER)
@@ -240,10 +238,8 @@ class AwsCli:
 
     def run(self):
         # Main method
+        self.ec2_controller()
         self.clear_console()
-        #self.resource = Resources.Resource(AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
-        #aws_clients = AWSClient(self.resource)
-        #self.ec2_client = aws_clients.get_user_client()
         self.main_menu.open()
 
 

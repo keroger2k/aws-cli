@@ -1,7 +1,6 @@
 from tabulate import tabulate
 from Logger import Logger
 from config import AWS_REGION
-import TransitGateways
 import Vpc
 
 class EC2Controller:

@@ -105,6 +105,7 @@ class QueryService:
     
     def get_network_rtb(self, role, filters):
         rtbs = []
+
         if role == None:
             rtbs = self.awsclient.user_client.describe_route_tables(Filters=filters)["RouteTables"]
         else: 
@@ -129,8 +130,6 @@ class QueryService:
             tgwrtb = tgw['Options']['AssociationDefaultRouteTableId']
             return client.search_transit_gateway_routes(TransitGatewayRouteTableId=tgwrtb, Filters=filters)["Routes"]
     
-   
-    
     def get_security_groups_by_id(self, groupId, role):
         sgs = []
 
@@ -151,7 +150,4 @@ class QueryService:
             client = self.awsclient.get_role_client(roles.AWS_ROLES[role]['role'])
             sgs = client.describe_security_groups()["SecurityGroups"]
 
-        return sgs    
-       
-
-
+        return sgs

@@ -6,6 +6,8 @@ from AWS.Service.QueryService import QueryService
 
 class NetworkHelper:
 
+    DISASTER_VPC = "vpc-0226a04f6f962a45b"
+
     def __init__(self, queryservice):
         # init
         self.queryservice = queryservice
@@ -22,9 +24,10 @@ class NetworkHelper:
         for key, value in roles.AWS_ROLES.items():
             vpcs = self.queryservice.get_vpcs(key)
             for vpc in vpcs:
-                network = ip_network(vpc['CidrBlock'])
-                if ip in network:
-                    return key
+                if vpc["VpcId"] != self.DISASTER_VPC:
+                    network = ip_network(vpc['CidrBlock'])
+                    if ip in network:
+                        return key
     
     def list_transit_gateways(self):
         tgws_list = {}
