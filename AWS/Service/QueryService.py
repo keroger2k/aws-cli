@@ -120,9 +120,6 @@ class QueryService:
                 interface = [iface for iface in role_interfaces if iface['PrivateIpAddress'] == ip]
                 if interface:
                     return interface
-
-
-
         
         filters = [
             {
